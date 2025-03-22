@@ -4,6 +4,7 @@ const { Op } = require('sequelize');
 const axios = require('axios');
 const db = require('./models');
 
+let isPopulating = false;
 const app = express();
 
 app.use(bodyParser.json());
@@ -81,7 +82,15 @@ app.post('/api/games/search', async (req, res) => {
 });
 
 app.post('/api/games/populate', async (req, res) => {
+  if (isPopulating) {
+    return res.status(409).json({
+      error: 'Another populate request is already in progress',
+    });
+  }
+
   try {
+    isPopulating = true;
+
     const androidUrl = 'https://interview-marketing-eng-dev.s3.eu-west-1.amazonaws.com/android.top100.json';
     const iosUrl = 'https://interview-marketing-eng-dev.s3.eu-west-1.amazonaws.com/ios.top100.json';
 
@@ -154,6 +163,8 @@ app.post('/api/games/populate', async (req, res) => {
       error: 'Failed to populate database',
       details: ex.message,
     });
+  } finally {
+    isPopulating = false;
   }
 });
 
